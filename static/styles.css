@@ -1,0 +1,20 @@
+:root { --ink:#17212b; --muted:#617080; --line:#dbe3e9; --surface:#fff; --canvas:#f4f7f8; --accent:#0e7490; --danger:#bd2635; --warn:#b86a06; --ok:#167244; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--ink); background:var(--canvas); font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.page { width:min(980px, calc(100% - 32px)); margin:0 auto; padding:52px 0 72px; }
+.hero { display:flex; align-items:flex-end; gap:36px; justify-content:space-between; margin-bottom:28px; }
+.eyebrow { margin:0 0 8px; color:var(--accent); font-size:.75rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+h1,h2,p { margin-top:0; } h1 { margin-bottom:12px; font-size:clamp(2rem, 5vw, 3.35rem); line-height:1; letter-spacing:-.05em; } h2 { margin-bottom:4px; font-size:1.25rem; }
+.lead { max-width:660px; color:var(--muted); line-height:1.55; margin-bottom:0; }
+.source-card { min-width:230px; padding:16px; border:1px solid #b9e2ea; border-radius:14px; background:#eafbfd; color:#235964; line-height:1.5; font-size:.88rem; }
+.panel { margin-top:18px; padding:26px; border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:0 12px 30px rgba(36,53,68,.04); }
+.grid { display:grid; gap:16px; margin-bottom:16px; }.grid.two { grid-template-columns:1fr 1fr; }.grid.compact { grid-template-columns:180px 1fr; }
+label { display:grid; gap:7px; color:#344352; font-size:.88rem; font-weight:700; }
+input,textarea,select { width:100%; border:1px solid #cbd7df; border-radius:9px; padding:10px 12px; background:#fff; color:var(--ink); font:inherit; font-weight:400; } textarea { resize:vertical; line-height:1.45; }
+input:focus,textarea:focus,select:focus { outline:3px solid #bdebf2; border-color:var(--accent); }
+.attributes { margin:24px 0; padding-top:20px; border-top:1px solid var(--line); }.section-heading { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }.section-heading p { margin:0; color:var(--muted); font-size:.87rem; }
+.attribute-row { display:grid; grid-template-columns:1.15fr 1.2fr .65fr 34px; gap:9px; margin-top:9px; }.icon-button { border:0; border-radius:8px; background:#f0f4f6; font-size:1.4rem; color:#52606d; cursor:pointer; }
+button { font:inherit; font-weight:800; cursor:pointer; }.primary { border:0; border-radius:10px; background:var(--accent); color:#fff; padding:12px 18px; }.primary:hover { background:#0c647a; }.primary:disabled { opacity:.6; cursor:wait; }.secondary { border:1px solid var(--line); border-radius:9px; background:#fff; padding:9px 11px; color:#314353; font-size:.86rem; }
+.result-panel[data-status="violation"] { border-color:#f4c1c7; }.result-panel[data-status="clean"] { border-color:#b9e2c9; }.pill { padding:7px 10px; border-radius:999px; background:#edf2f4; color:#53626e; white-space:nowrap; font-size:.76rem; font-weight:800; }.violation { margin:12px 0; padding:13px 15px; border-left:4px solid var(--danger); border-radius:0 10px 10px 0; background:#fff5f6; }.violation p { margin:0 0 5px; font-weight:750; }.violation small,.review-reason { color:#66727d; line-height:1.45; }.review-reason { margin:12px 0 0; } details { margin-top:16px; color:#52606d; } details summary { cursor:pointer; font-weight:700; } details li { margin-top:6px; font-size:.87rem; }
+.history-panel { margin-top:18px; }.history-list { border-top:1px solid var(--line); margin-top:17px; }.history-row { display:grid; grid-template-columns:140px 1fr 175px; gap:12px; padding:12px 2px; border-bottom:1px solid var(--line); font-size:.9rem; }.history-row strong { color:var(--warn); }.history-row.violation strong { color:var(--danger); }.history-row.clean strong { color:var(--ok); }.history-row time { color:var(--muted); text-align:right; font-size:.8rem; }
+@media (max-width:700px) { .page { width:min(100% - 24px, 980px); padding-top:28px; }.hero { display:block; }.source-card { margin-top:22px; }.panel { padding:18px; }.grid.two,.grid.compact,.attribute-row,.history-row { grid-template-columns:1fr; }.section-heading { flex-direction:column; }.history-row time { text-align:left; }.icon-button { min-height:36px; } }

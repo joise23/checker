@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ozon Card Checker</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Локальная база правил · проверка карточек</p>
+          <h1>Ozon Card Checker</h1>
+          <p class="lead">Введите карточку, добавьте главное фото и получите только один из трёх статусов: нарушение, нарушений не найдено или требуется проверка.</p>
+        </div>
+        <aside class="source-card" id="source-status" aria-live="polite">Загружаю базу правил…</aside>
+      </header>
+
+      <section class="panel">
+        <form id="card-form">
+          <div class="grid two">
+            <label>Категория<input name="category" placeholder="Например, Аксессуары для карнавального костюма"></label>
+            <label>Группа товаров<input name="group" placeholder="Например, Дом и сад"></label>
+          </div>
+          <div class="grid two">
+            <label>Название товара<input name="title" required placeholder="Обязательное поле"></label>
+            <label>Бренд<input name="brand" placeholder="Например, Нет бренда"></label>
+          </div>
+          <div class="grid two compact">
+            <label>Метка 18+
+              <select name="age_18"><option value="нет">Нет</option><option value="да">Да</option></select>
+            </label>
+            <label>Главное фото<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+          </div>
+          <label>Аннотация<textarea name="annotation" rows="7" placeholder="Описание товара и дополнительная информация"></textarea></label>
+
+          <section class="attributes">
+            <div class="section-heading"><div><h2>Характеристики</h2><p>Передавайте значения ровно как в карточке Ozon. Пустые характеристики можно не добавлять.</p></div><button type="button" class="secondary" id="add-attribute">Добавить характеристику</button></div>
+            <div id="attribute-list"></div>
+          </section>
+          <button class="primary" id="submit-button" type="submit">Проверить карточку</button>
+        </form>
+      </section>
+
+      <section class="panel result-panel" id="result-panel" hidden aria-live="polite">
+        <div class="section-heading"><div><p class="eyebrow">Результат проверки</p><h2 id="result-title"></h2></div><span class="pill" id="mode"></span></div>
+        <div id="violations"></div>
+        <p class="review-reason" id="review-reason"></p>
+        <details id="sources-used"><summary>Источники, учтённые при проверке</summary><ul id="sources-list"></ul></details>
+      </section>
+
+      <section class="panel history-panel">
+        <div class="section-heading"><div><p class="eyebrow">Журнал</p><h2>Последние проверки</h2></div><button type="button" class="secondary" id="refresh-history">Обновить</button></div>
+        <div id="history">Загрузка…</div>
+      </section>
+    </main>
+    <template id="attribute-template">
+      <div class="attribute-row">
+        <input class="attribute-key" placeholder="Характеристика, например Материал">
+        <input class="attribute-value" placeholder="Значение, например Хлопок">
+        <input class="attribute-unit" placeholder="Единица">
+        <button type="button" class="icon-button" title="Удалить характеристику">×</button>
+      </div>
+    </template>
+    <script src="/app.js"></script>
+  </body>
+</html>
