@@ -307,10 +307,16 @@ def llm_check(card: dict[str, Any], context: list[dict[str, str]]) -> dict[str, 
             "review_reason": "строка или пустая строка",
         },
     }
-    content: list[dict[str, Any]] = [{"type": "text", "text": json.dumps(prompt, ensure_ascii=False)}]
+    prompt_str = json.dumps(prompt, ensure_ascii=False)
     image = card.get("image_data_url", "")
     if isinstance(image, str) and image.startswith("data:image/"):
-        content.append({"type": "image_url", "image_url": {"url": image, "detail": "low"}})
+        user_content: str | list[dict[str, Any]] = [
+            {"type": "text", "text": prompt_str},
+            {"type": "image_url", "image_url": {"url": image, "detail": "low"}},
+        ]
+    else:
+        user_content = prompt_str
+
     body = json.dumps(
         {
             "model": model,
@@ -318,7 +324,7 @@ def llm_check(card: dict[str, Any], context: list[dict[str, str]]) -> dict[str, 
             "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": "Отвечай только корректным JSON по указанной схеме."},
-                {"role": "user", "content": content},
+                {"role": "user", "content": user_content},
             ],
         }
     ).encode("utf-8")
@@ -338,7 +344,12 @@ def llm_check(card: dict[str, Any], context: list[dict[str, str]]) -> dict[str, 
         with urllib.request.urlopen(request, timeout=60) as response:
             payload = json.loads(response.read().decode("utf-8"))
         model_result = json.loads(extract_output_text(payload))
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+    except urllib.error.HTTPError as exc:
+        err_body = exc.read().decode("utf-8", errors="ignore")
+        print(f"[LLM ERROR] HTTP {exc.code}: {err_body}")
+        return {"status": "requires_review", "violations": [], "review_reason": f"Не удалось выполнить LLM-проверку (HTTP {exc.code}): {err_body or exc.reason}"}
+    except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        print(f"[LLM ERROR] {exc}")
         return {"status": "requires_review", "violations": [], "review_reason": f"Не удалось выполнить LLM-проверку: {exc}"}
     if model_result.get("status") not in {"violation", "clean", "requires_review"}:
         return {"status": "requires_review", "violations": [], "review_reason": "LLM вернула неизвестный статус."}
