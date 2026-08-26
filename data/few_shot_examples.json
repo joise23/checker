@@ -1,0 +1,43 @@
+[
+  {
+    "user_card": {
+      "category": "Аксессуары",
+      "title": "Очки защитные карнавальные 18+ http://my-shop.ru скидка за отзыв",
+      "annotation": "Купите на нашем сайте по скидке за отзыв!"
+    },
+    "assistant_response": {
+      "status": "violation",
+      "violations": [
+        {
+          "text": "Для карточки с возрастным ограничением не указана метка 18+.",
+          "rule_code": "CARD-AGE-LABEL",
+          "evidence": "Присутствует 18+ в названии, но атрибут age_18 не установлен"
+        },
+        {
+          "text": "Карточка предлагает вознаграждение за отзыв или оценку.",
+          "rule_code": "CARD-REVIEW-REWARD",
+          "evidence": "Указано: скидка за отзыв"
+        },
+        {
+          "text": "В карточке указаны сторонние контакты или ссылка.",
+          "rule_code": "CARD-EXTERNAL-CONTACTS",
+          "evidence": "Ссылка: http://my-shop.ru"
+        }
+      ],
+      "review_reason": ""
+    }
+  },
+  {
+    "user_card": {
+      "category": "Одежда",
+      "title": "Футболка базовая хлопковая белая",
+      "brand": "Ozon Basics",
+      "annotation": "Качественная базовая футболка из 100% хлопка."
+    },
+    "assistant_response": {
+      "status": "clean",
+      "violations": [],
+      "review_reason": ""
+    }
+  }
+]

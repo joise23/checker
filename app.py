@@ -19,6 +19,7 @@ STATIC_DIR = APP_DIR / "static"
 DATA_DIR = APP_DIR / "data"
 DB_PATH = DATA_DIR / "ozon_checker.sqlite3"
 SOURCE_BASE_PATH = DATA_DIR / "ozon_rules_source_base.json"
+FEW_SHOT_PATH = DATA_DIR / "few_shot_examples.json"
 MAX_BODY_SIZE = 10 * 1024 * 1024
 
 
@@ -273,8 +274,77 @@ def extract_output_text(response: dict[str, Any]) -> str:
     for choice in response.get("choices", []):
         content = choice.get("message", {}).get("content", "")
         if isinstance(content, str):
-            return content
+            text = content.strip()
+            # Clean Markdown code block wrappers if model wrapped JSON in ```json ... ```
+            if text.startswith("```"):
+                text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+                text = re.sub(r"\s*```$", "", text)
+            return text.strip()
     raise ValueError("Провайдер не вернул текстовый ответ.")
+
+
+def build_markdown_prompt(card: dict[str, Any], rules: list[dict[str, Any]], context: list[dict[str, str]]) -> str:
+    lines = [
+        "# Задача: Проверка карточки товара по правилам Ozon",
+        "Проверь карточку товара строго по переданным правилам и фрагментам.",
+        "ВАЖНО: Если в карточке содержится НЕСКОЛЬКО нарушений, обязательно выяви и выведи ВСЕ ошибки в массиве `violations`.",
+        "",
+        "## Правила принятия решений:",
+        "- `violation`: Перечислены все найденные нарушения в массиве `violations`.",
+        "- `clean`: Все применимые правила проверены, нарушений нет.",
+        "- `requires_review`: Данных недостаточно или требование неоднозначно.",
+        "",
+        "## Список доступных правил:",
+    ]
+    for r in rules:
+        lines.append(f"- **Код правила**: `{r.get('code')}` | **Название**: {r.get('title')} | **Суть**: {r.get('rule_text')}")
+
+    if context:
+        lines.append("\n## Найденные фрагменты регламентов:")
+        for idx, item in enumerate(context, 1):
+            lines.append(f"{idx}. [{item.get('source')}] {item.get('text')}")
+
+    lines.append("\n## Данные проверяемой карточки товара:")
+    for k in ("category", "group", "title", "brand", "annotation", "age_18"):
+        val = card.get(k)
+        if val:
+            lines.append(f"- **{k}**: {val}")
+    if card.get("attributes"):
+        lines.append("- **Характеристики**:")
+        for attr in card["attributes"]:
+            lines.append(f"  - {attr.get('key', '')}: {attr.get('value', '')} {attr.get('unit', '')}".strip())
+
+    lines.append(
+        "\n## Схема требуемого ответа (только строго валидный JSON):\n"
+        "{\n"
+        '  "status": "violation | clean | requires_review",\n'
+        '  "violations": [\n'
+        '    {\n'
+        '      "text": "короткое наименование ошибки",\n'
+        '      "rule_code": "КОД_ПРАВИЛА",\n'
+        '      "evidence": "цитата или факты из карточки"\n'
+        "    }\n"
+        "  ],\n"
+        '  "review_reason": ""\n'
+        "}"
+    )
+    return "\n".join(lines)
+
+
+def load_few_shot_messages() -> list[dict[str, Any]]:
+    if not FEW_SHOT_PATH.exists():
+        return []
+    try:
+        raw = json.loads(FEW_SHOT_PATH.read_text(encoding="utf-8"))
+        messages: list[dict[str, Any]] = []
+        for item in raw:
+            if isinstance(item, dict) and "user_card" in item and "assistant_response" in item:
+                messages.append({"role": "user", "content": build_markdown_prompt(item["user_card"], [], [])})
+                messages.append({"role": "assistant", "content": json.dumps(item["assistant_response"], ensure_ascii=False)})
+        return messages
+    except Exception as exc:
+        print(f"[WARNING] Не удалось загрузить Few-Shot примеры: {exc}")
+        return []
 
 
 def llm_check(card: dict[str, Any], context: list[dict[str, str]]) -> dict[str, Any] | None:
@@ -291,23 +361,8 @@ def llm_check(card: dict[str, Any], context: list[dict[str, str]]) -> dict[str, 
     core_rules = [dict(row) for row in db().execute("SELECT * FROM rules WHERE scope='card'")]
     compact_card = {key: card.get(key, "") for key in ("category", "group", "title", "brand", "annotation", "age_18")}
     compact_card["attributes"] = card.get("attributes", [])
-    prompt = {
-        "task": "Проверь карточку товара по переданным правилам. Нельзя придумывать правила или нарушения. Если в карточке содержится несколько нарушений, обязательно выяви и перечисли ВСЕ ошибки и нарушения в массиве violations.",
-        "decision_policy": {
-            "violation": "Есть конкретное правило и конкретное подтверждение в тексте или на фото. Перечисли абсолютно ВСЕ найденные нарушения.",
-            "clean": "Все применимые правила можно проверить по этим данным, нарушений нет.",
-            "requires_review": "Данных недостаточно, правило неоднозначно или проверка требует внешнего реестра/документа.",
-        },
-        "card": compact_card,
-        "formalised_rules": core_rules,
-        "retrieved_source_fragments": context,
-        "response_schema": {
-            "status": "violation | clean | requires_review",
-            "violations": [{"text": "короткая формулировка нарушения", "rule_code": "код правила или SOURCE", "evidence": "точный фрагмент карточки"}],
-            "review_reason": "строка или пустая строка",
-        },
-    }
-    prompt_str = json.dumps(prompt, ensure_ascii=False)
+
+    prompt_str = build_markdown_prompt(compact_card, core_rules, context)
     image = card.get("image_data_url", "")
     if isinstance(image, str) and image.startswith("data:image/"):
         user_content: str | list[dict[str, Any]] = [
@@ -317,15 +372,22 @@ def llm_check(card: dict[str, Any], context: list[dict[str, str]]) -> dict[str, 
     else:
         user_content = prompt_str
 
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": "Ты эксперт по модерации карточек Ozon. Возвращай исключительно корректный JSON без лишних пояснений."}
+    ]
+
+    # Few-Shot examples
+    messages.extend(load_few_shot_messages())
+
+    # Current card request
+    messages.append({"role": "user", "content": user_content})
+
     body = json.dumps(
         {
             "model": model,
             "temperature": 0,
             "response_format": {"type": "json_object"},
-            "messages": [
-                {"role": "system", "content": "Отвечай только корректным JSON по указанной схеме."},
-                {"role": "user", "content": user_content},
-            ],
+            "messages": messages,
         }
     ).encode("utf-8")
     headers = {
