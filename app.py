@@ -280,9 +280,14 @@ def extract_output_text(response: dict[str, Any]) -> str:
 def llm_check(card: dict[str, Any], context: list[dict[str, str]]) -> dict[str, Any] | None:
     api_key = os.getenv("LLM_API_KEY", "").strip()
     model = os.getenv("LLM_MODEL", "").strip()
-    base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+    raw_base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").strip().rstrip("/")
     if not api_key or not model:
         return None
+
+    if raw_base_url.endswith("/chat/completions"):
+        endpoint_url = raw_base_url
+    else:
+        endpoint_url = f"{raw_base_url}/chat/completions"
     core_rules = [dict(row) for row in db().execute("SELECT * FROM rules WHERE scope='card'")]
     compact_card = {key: card.get(key, "") for key in ("category", "group", "title", "brand", "annotation", "age_18")}
     compact_card["attributes"] = card.get("attributes", [])
@@ -317,10 +322,16 @@ def llm_check(card: dict[str, Any], context: list[dict[str, str]]) -> dict[str, 
             ],
         }
     ).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "x-goog-api-key": api_key,
+        "api-key": api_key,
+        "Content-Type": "application/json",
+    }
     request = urllib.request.Request(
-        f"{base_url}/chat/completions",
+        endpoint_url,
         data=body,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
     try:

@@ -27,6 +27,8 @@ $env:LLM_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 python .\app.py
 ```
 
+*Обратите внимание:* `LLM_BASE_URL` можно указывать как базовый путь (например, `https://generativelanguage.googleapis.com/v1beta/openai`), так и полный путь к эндпоинту (`https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`). Приложение автоматически обработает любой вариант и не приведёт к ошибке 404.
+
 *Примечание:* Если вы используете сторонний провайдер или прокси (например, OpenRouter), укажите соответствующий `LLM_BASE_URL` и API-ключ:
 
 ```powershell
