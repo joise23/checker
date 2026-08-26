@@ -18,11 +18,11 @@ python .\app.py
 
 Без настроек LLM приложение выполняет только строгие детерминированные проверки по правилам базы данных.
 
-Для подключения модели **`gemini-2.5-flash-lite`** (через OpenAI-совместимый API Google Gemini) выполните в PowerShell:
+Для подключения модели **`gemini-3.5-flash-lite`** (или `gemini-2.5-flash-lite`) через OpenAI-совместимый API Google Gemini выполните в PowerShell:
 
 ```powershell
 $env:LLM_API_KEY = "ваш_API_ключ_Gemini"
-$env:LLM_MODEL = "gemini-2.5-flash-lite"
+$env:LLM_MODEL = "gemini-3.5-flash-lite"
 $env:LLM_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 python .\app.py
 ```
@@ -39,7 +39,7 @@ python .\app.py
 
 ```powershell
 $env:LLM_API_KEY = "ваш_ключ"
-$env:LLM_MODEL = "google/gemini-2.5-flash-lite"
+$env:LLM_MODEL = "google/gemini-3.5-flash-lite"
 $env:LLM_BASE_URL = "https://openrouter.ai/api/v1"
 python .\app.py
 ```
