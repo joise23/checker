@@ -27,6 +27,12 @@ $env:LLM_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 python .\app.py
 ```
 
+> **Важно по переменным в PowerShell:**
+> - Команда `$env:LLM_API_KEY = "..."` задаёт переменную среды **только для текущей сессии PowerShell**. Если вы закрыли окно или запустили `python .\app.py` в новом окне, переменные нужно ввести заново.
+> - Чтобы проверить, установлены ли переменные, в PowerShell выполните:
+>   `$env:LLM_API_KEY; $env:LLM_MODEL; $env:LLM_BASE_URL`
+> - Запросы `/api/check` к бэкенду возвращают статус HTTP 200 даже при ошибке взаимодействия с LLM API, но точный текст ошибки от сервера Google (например, недействительный API-ключ или блокировка региона) пишется в консоль PowerShell с префиксом `[LLM ERROR]` и выводится в блоке причин проверки на веб-странице.
+
 *Обратите внимание:* `LLM_BASE_URL` можно указывать как базовый путь (например, `https://generativelanguage.googleapis.com/v1beta/openai`), так и полный путь к эндпоинту (`https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`). Приложение автоматически обработает любой вариант и не приведёт к ошибке 404.
 
 *Примечание:* Если вы используете сторонний провайдер или прокси (например, OpenRouter), укажите соответствующий `LLM_BASE_URL` и API-ключ:
