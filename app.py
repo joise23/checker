@@ -305,7 +305,7 @@ def build_markdown_prompt(card: dict[str, Any], rules: list[dict[str, Any]], con
             lines.append(f"{idx}. [{item.get('source')}] {item.get('text')}")
 
     lines.append("\n## Данные проверяемой карточки товара:")
-    for k in ("category", "group", "title", "brand", "annotation", "age_18"):
+    for k in ("category", "group", "product_group", "title", "brand", "annotation", "image_text", "age_18", "question"):
         val = card.get(k)
         if val:
             lines.append(f"- **{k}**: {val}")
