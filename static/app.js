@@ -36,7 +36,10 @@ function statusLabel(status) {
   return {violation: 'Нарушение', clean: 'Нарушений не найдено', requires_review: 'Требуется проверка'}[status] || 'Требуется проверка';
 }
 
-function renderResult(result) {
+let currentCheckId = null;
+
+function renderResult(result, checkId = null) {
+  currentCheckId = checkId;
   const panel = document.querySelector('#result-panel');
   panel.hidden = false;
   panel.dataset.status = result.status;
@@ -62,6 +65,32 @@ function renderResult(result) {
   sources.replaceChildren();
   for (const item of result.source_context || []) {
     const li = document.createElement('li'); li.textContent = item.source; sources.append(li);
+  }
+  const feedbackMsg = document.querySelector('#feedback-message');
+  if (feedbackMsg) feedbackMsg.textContent = '';
+}
+
+async function sendFeedback(isCorrect) {
+  if (!currentCheckId) {
+    alert('Нет активного ID проверки для отправки отзыва.');
+    return;
+  }
+  const comment = prompt(isCorrect ? 'Комментарий (необязательно):' : 'Укажите, в чем ошибочка или каков верный вердикт:');
+  if (comment === null) return;
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({check_id: currentCheckId, is_correct: isCorrect, comment})
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.querySelector('#feedback-message').textContent = ' Спасибо! Ваша оценка сохранена для обучения.';
+    } else {
+      alert(data.error || 'Ошибка сохранения отзыва.');
+    }
+  } catch (err) {
+    alert('Ошибка сети: ' + err.message);
   }
 }
 
@@ -101,7 +130,7 @@ form.addEventListener('submit', async event => {
     const response = await fetch('/api/check', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(card)});
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Не удалось выполнить проверку.');
-    renderResult(result);
+    renderResult(result, result.check_id || null);
     await loadHistory();
   } catch (error) {
     alert(error.message);
