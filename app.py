@@ -138,6 +138,13 @@ def initialise_database() -> None:
                 input_json TEXT NOT NULL,
                 result_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY,
+                check_id INTEGER NOT NULL REFERENCES checks(id),
+                is_correct INTEGER NOT NULL,
+                comment TEXT,
+                created_at TEXT NOT NULL
+            );
             """
         )
         for rule in CORE_RULES:
@@ -315,8 +322,12 @@ def build_markdown_prompt(card: dict[str, Any], rules: list[dict[str, Any]], con
             lines.append(f"  - {attr.get('key', '')}: {attr.get('value', '')} {attr.get('unit', '')}".strip())
 
     lines.append(
-        "\n## Схема требуемого ответа (только строго валидный JSON):\n"
+        "\n## Инструкция по рассуждению (Chain-of-Thought):\n"
+        "Сначала проанализируй каждое поле карточки и зафиксируй шаг за шагом свои мысли в поле `reasoning`.\n"
+        "Только после пошагового анализа сформулируй финальный статус и список нарушений `violations`.\n\n"
+        "## Схема требуемого ответа (только строго валидный JSON):\n"
         "{\n"
+        '  "reasoning": "Пошаговый разбор карточки по всем правилам...",\n'
         '  "status": "violation | clean | requires_review",\n'
         '  "violations": [\n'
         '    {\n'
@@ -331,16 +342,20 @@ def build_markdown_prompt(card: dict[str, Any], rules: list[dict[str, Any]], con
     return "\n".join(lines)
 
 
-def load_few_shot_messages() -> list[dict[str, Any]]:
+def load_few_shot_messages(limit: int = 4) -> list[dict[str, Any]]:
     if not FEW_SHOT_PATH.exists():
         return []
     try:
         raw = json.loads(FEW_SHOT_PATH.read_text(encoding="utf-8"))
         messages: list[dict[str, Any]] = []
-        for item in raw:
+        # Limit the number of few-shot examples to prevent context pollution and lost-in-the-middle degradation
+        for item in raw[:limit]:
             if isinstance(item, dict) and "user_card" in item and "assistant_response" in item:
                 messages.append({"role": "user", "content": build_markdown_prompt(item["user_card"], [], [])})
-                messages.append({"role": "assistant", "content": json.dumps(item["assistant_response"], ensure_ascii=False)})
+                resp = dict(item["assistant_response"])
+                if "reasoning" not in resp:
+                    resp["reasoning"] = f"Анализ карточки {item['user_card'].get('title', '')}: проверены категории и тексты на отсутствие запрещенных сопоставлений."
+                messages.append({"role": "assistant", "content": json.dumps(resp, ensure_ascii=False)})
         return messages
     except Exception as exc:
         print(f"[WARNING] Не удалось загрузить Few-Shot примеры: {exc}")
@@ -465,10 +480,12 @@ def check_card(card: dict[str, Any]) -> dict[str, Any]:
     stored_card = {key: value for key, value in card.items() if key != "image_data_url"}
     stored_card["image_present"] = bool(card.get("image_data_url"))
     with db() as connection:
-        connection.execute(
+        cursor = connection.execute(
             "INSERT INTO checks(created_at, status, input_json, result_json) VALUES (?, ?, ?, ?)",
             (utc_now(), status, json.dumps(stored_card, ensure_ascii=False), json.dumps(result, ensure_ascii=False)),
         )
+        check_id = cursor.lastrowid
+    result["check_id"] = check_id
     return result
 
 
@@ -527,6 +544,28 @@ class AppHandler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self) -> None:
+        if self.path == "/api/feedback":
+            content_length = int(self.headers.get("Content-Length", "0"))
+            if content_length <= 0 or content_length > MAX_BODY_SIZE:
+                self.send_json({"error": "Некорректный запрос."}, HTTPStatus.BAD_REQUEST)
+                return
+            try:
+                payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                check_id = int(payload.get("check_id", 0))
+                is_correct = 1 if payload.get("is_correct") else 0
+                comment = str(payload.get("comment", "")).strip()
+                if not check_id:
+                    raise ValueError("Не указан check_id.")
+                with db() as connection:
+                    connection.execute(
+                        "INSERT INTO feedback(check_id, is_correct, comment, created_at) VALUES (?, ?, ?, ?)",
+                        (check_id, is_correct, comment, utc_now()),
+                    )
+                self.send_json({"ok": True, "message": "Оценка успешно сохранена!"})
+            except (ValueError, json.JSONDecodeError) as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+
         if self.path != "/api/check":
             self.send_error(HTTPStatus.NOT_FOUND)
             return

@@ -47,6 +47,14 @@
         <div class="section-heading"><div><p class="eyebrow">Результат проверки</p><h2 id="result-title"></h2></div><span class="pill" id="mode"></span></div>
         <div id="violations"></div>
         <p class="review-reason" id="review-reason"></p>
+
+        <div class="feedback-box">
+          <span>Оцените качество вердикта:</span>
+          <button type="button" class="secondary feedback-btn" onclick="sendFeedback(true)">👍 Верно</button>
+          <button type="button" class="secondary feedback-btn" onclick="sendFeedback(false)">👎 Ошибка</button>
+          <span id="feedback-message" class="feedback-message"></span>
+        </div>
+
         <details id="sources-used"><summary>Источники, учтённые при проверке</summary><ul id="sources-list"></ul></details>
       </section>
 
