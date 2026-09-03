@@ -14,7 +14,7 @@ python .\app.py
 
 Откройте в браузере `http://127.0.0.1:8080`.
 
-## LLM-проверка (Gemini 2.5 Flash Lite / OpenAI-compatible API)
+## LLM-проверка (Gemini 3.5 Flash Lite / OpenAI-compatible API)
 
 Без настроек LLM приложение выполняет только строгие детерминированные проверки по правилам базы данных.
 
